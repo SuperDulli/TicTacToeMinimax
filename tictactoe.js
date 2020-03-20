@@ -19,12 +19,14 @@ class Board {
     return this.board[i][j];
   }
 
-  set(i, j, value) {
+  setBoardPos(i, j, value) {
     this.board[i][j] = value;
     this._available -= 1;
   }
 
-  _fieldHeight;
+  setBoard(board) {
+    this.board = copyBoard(board);
+  }
 
   getClickedTile(mouseX, mouseY) {
     const i = Math.floor(mouseY / this._fieldHeight);
@@ -33,46 +35,12 @@ class Board {
     return {i, j};
   }
 
-  checkWinner() {
-    let winner = null;
-    // Horizontal
-    for (let i = 0; i < this.rows; i++) {
-      if (allEqual(this.board[i])) {
-        winner = this.board[i][0];
-      }
-    }
-
-    // Vertical
-    for (let i = 0; i < this.cols; i++) {
-      if (allEqual(arrayColumn(this.board, i))) {
-        winner = this.board[0][i];
-      }
-    }
-
-    // Diagonal
-    if (this.rows !== this.cols) {
-      console.error("can not check diagonally. Board is not a square!")
-      return winner;
-    }
-    let d1 = [];
-    let d2 = [];
-    for (let i = 0; i < this.rows; i++) {
-      d1.push(this.board[i][i]);
-      d2.push(this.board[this.rows - i - 1][this.cols - i - 1]);
-    }
-    if (allEqual(d1)) {
-      winner = d1[0];
-    } else if (allEqual(d2)) {
-      winner = d2[0];
-    }
-
-    // check for tie
-    if (winner == null && this._available === 0) {
-      return 'tie'
-    } else {
-      return winner;
-    }
-  }
+  // clone() {
+  //   let clone = new Board(this.rows, this.cols);
+  //   Object.assign({}, this);
+  //   //clone.setState(this.board.map(arr => arr.slice()), this._available)
+  //   return board;
+  // }
 
   draw() {
     stroke(0);
@@ -106,6 +74,87 @@ class Board {
   }
 }
 
-const allEqual = arr => arr.every(v => v === arr[0] && v !== '');
+// board Tools
 
-const arrayColumn = (arr, n) => arr.map(x => x[n]);
+function checkWinner(position) {
+  let winner = null;
+  // Horizontal
+  for (let i = 0; i < position.length; i++) {
+    if (allEqual(position[i])) {
+      winner = position[i][0];
+    }
+  }
+
+  // Vertical
+  for (let i = 0; i < position[0].length; i++) {
+    if (allEqual(arrayColumn(position, i))) {
+      winner = position[0][i];
+    }
+  }
+
+  // Diagonal
+  if (position.rows !== position.cols) {
+    console.error("can not check diagonally. Board is not a square!")
+    return winner;
+  }
+  let d1 = [];
+  let d2 = [];
+  for (let i = 0; i < position.length; i++) {
+    d1.push(position[i][i]);
+    d2.push(position[i][position.length - i - 1]);
+  }
+  if (allEqual(d1)) {
+    winner = d1[0];
+  } else if (allEqual(d2)) {
+    winner = d2[0];
+  }
+
+  // check for tie
+  if (winner == null) {
+    const available = spotsAvailable(position);
+    if (available <= 0) winner = 'tie';
+  }
+
+  // if (winner !== 'tie' && winner !== null) gameOver = true;
+
+  return winner;
+}
+
+function boardEvaluation(position) {
+  const winner = checkWinner(position);
+  if (winner === 'X') {
+    return 1;
+  } else if (winner === 'O') {
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
+function nextBoards(position, activePlayer) {
+  let boards = [];
+  for (let i = 0; i < position.length; i++) {
+    for (let j = 0; j < position[0].length; j++) {
+      if (position[i][j] === '') {
+        let copiedBoard = copyBoard(position); // make good clone
+        copiedBoard[i][j] = activePlayer;
+        boards.push(copiedBoard);
+      }
+    }
+  }
+  return boards;
+}
+
+function spotsAvailable(position) {
+  let available = 0;
+  position.forEach(row => available += row.filter(x => x === '').length);
+  return available;
+}
+
+const
+  allEqual = arr => arr.every(v => v === arr[0] && v !== '');
+
+const
+  arrayColumn = (arr, n) => arr.map(x => x[n]);
+
+const copyBoard = board => board.map(arr => arr.slice());
